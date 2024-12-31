@@ -1,5 +1,6 @@
 package com.example.geminichatbot
 
+import android.os.Message
 import android.service.autofill.OnClickAction
 import android.widget.NumberPicker.OnValueChangeListener
 import androidx.compose.foundation.background
@@ -8,6 +9,9 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Send
 import androidx.compose.material3.Icon
@@ -22,19 +26,73 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.layout.VerticalAlignmentLine
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.geminichatbot.ui.theme.ColorModelMessage
+import com.example.geminichatbot.ui.theme.ColorUserMessage
 
 @Composable
-fun ChatPage(modifier: Modifier = Modifier){
+fun ChatPage(modifier: Modifier = Modifier, viewModel: ChatViewModel){
     Column (
         modifier = Modifier
     ){
         AppHeader()
-        MessageInput()
+        MessageList(modifier = Modifier.weight(1f), messageList = viewModel.messageList)
+        MessageInput(
+            onMessageSend = {
+                viewModel.senMessage(it)
+
+        })
     }
+}
+
+@Composable
+fun MessageList(modifier: Modifier = Modifier, messageList: List<MessageModel>){
+    LazyColumn (
+        modifier = modifier,
+        reverseLayout = true
+    ) {items(messageList.reversed()) {
+        MessageRow(messageModel = it)
+    }
+    }
+
+}
+@Composable
+fun MessageRow (messageModel: MessageModel){
+    val isModel = messageModel.role=="model"
+    Row (
+        verticalAlignment = Alignment.CenterVertically)
+    {
+        Box(
+            modifier = Modifier.fillMaxWidth()
+        )
+        { Box(
+            modifier = Modifier.align(
+                if(isModel) Alignment.BottomStart else Alignment.BottomEnd)
+                    .padding(
+                        start = if(isModel) 8.dp else 7.dp,
+                        end = if(isModel) 8.dp else 7.dp,
+                        top = 8.dp,
+                    )
+                .clip(RoundedCornerShape(48f))
+                .background(if(isModel) ColorModelMessage else ColorUserMessage )
+                .padding(16.dp)
+
+        ){
+            Text(
+                text = messageModel.message,
+                fontWeight = FontWeight.ExtraLight,
+                color = Color.White
+            )
+        }
+
+        }
+        }
 }
 @Composable
 fun AppHeader(){
@@ -50,7 +108,7 @@ fun AppHeader(){
 }
 
 @Composable
-fun MessageInput(){
+fun MessageInput(onMessageSend : (String)-> Unit){
     var message by remember {
         mutableStateOf("")
     }
@@ -64,7 +122,13 @@ fun MessageInput(){
                 message = it
             }
     )
-        IconButton(onClick = { /* Action à définir */ }) {
+        IconButton(onClick = {
+            if(message.isNotEmpty()){
+                onMessageSend(message)
+                message = ""
+            }
+
+        }) {
             Icon(
                 imageVector = Icons.Default.Send,
                 contentDescription = "send"
